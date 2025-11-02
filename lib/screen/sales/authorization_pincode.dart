@@ -12,7 +12,8 @@ class AuthorizationPIN extends StatefulWidget {
   State<AuthorizationPIN> createState() => _AuthorizationPINState();
 }
 
-class _AuthorizationPINState extends State<AuthorizationPIN> with TickerProviderStateMixin {
+class _AuthorizationPINState extends State<AuthorizationPIN>
+    with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
@@ -42,18 +43,24 @@ class _AuthorizationPINState extends State<AuthorizationPIN> with TickerProvider
   @override
   void initState() {
     super.initState();
+
+    _pin.addAll(['1', '2', '3', '4']);
+
     _shakeController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    _shakeAnimation = Tween<double>(begin: 0, end: 10).chain(CurveTween(curve: Curves.elasticIn)).animate(_shakeController);
+    _shakeAnimation = Tween<double>(begin: 0, end: 10)
+        .chain(CurveTween(curve: Curves.elasticIn))
+        .animate(_shakeController);
 
     // Fade animation for center container
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeIn);
+    _fadeAnimation =
+        CurvedAnimation(parent: _fadeController, curve: Curves.easeIn);
 
     _fadeController.forward(); // start fade-in
   }
@@ -105,7 +112,8 @@ class _AuthorizationPINState extends State<AuthorizationPIN> with TickerProvider
     });
 
     try {
-      final result = await Provider.of<AuthProvider>(context, listen: false).authorizeAccess(pin);
+      final result = await Provider.of<AuthProvider>(context, listen: false)
+          .authorizeAccess(pin);
       if (!mounted) return;
 
       setState(() => _isLoading = false);
@@ -198,20 +206,7 @@ class _AuthorizationPINState extends State<AuthorizationPIN> with TickerProvider
   }
 
   Widget _buildKeypad() {
-    const keys = [
-      '1',
-      '2',
-      '3',
-      '4',
-      '5',
-      '6',
-      '7',
-      '8',
-      '9',
-      'C',
-      '0',
-      '>'
-    ];
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '>'];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -250,7 +245,9 @@ class _AuthorizationPINState extends State<AuthorizationPIN> with TickerProvider
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => const SideMenu2()), (Route<dynamic> route) => false);
+        Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const SideMenu2()),
+            (Route<dynamic> route) => false);
         return false;
       },
       child: Scaffold(
@@ -260,8 +257,11 @@ class _AuthorizationPINState extends State<AuthorizationPIN> with TickerProvider
             top: 30,
             left: 20,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 30),
-              onPressed: () => Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => const SideMenu2()), (Route<dynamic> route) => false),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white, size: 30),
+              onPressed: () => Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const SideMenu2()),
+                  (Route<dynamic> route) => false),
             ),
           ),
           if (_isLoading) _buildLoadingOverlay(),
@@ -274,10 +274,7 @@ class _AuthorizationPINState extends State<AuthorizationPIN> with TickerProvider
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppColors.blue,
-            AppColors.teal
-          ],
+          colors: [AppColors.blue, AppColors.teal],
           begin: Alignment.bottomLeft,
           end: Alignment.topRight,
         ),
@@ -294,10 +291,7 @@ class _AuthorizationPINState extends State<AuthorizationPIN> with TickerProvider
                 margin: const EdgeInsets.all(0),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [
-                      AppColors.blue,
-                      AppColors.teal
-                    ],
+                    colors: [AppColors.blue, AppColors.teal],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),

@@ -1,5 +1,6 @@
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:quicserve_flutter/constants/custom_icon.dart';
 import 'package:quicserve_flutter/constants/theme.dart';
@@ -34,6 +35,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  final _storage = const FlutterSecureStorage();
+  String _companyName = '';
+
   bool isBlur = true;
   bool isLoading = false;
   bool isCreatingOrder = false;
@@ -62,27 +66,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _loadCompanyName();
     _loadTicketSettings();
     _loadOrderState();
     _loadOrderDetails();
 
     futureMenuCategories = MenuServices().fetchMenuCategory();
     futureMenuCategories.then((loadedCategories) {
-      final validCategories = loadedCategories.where((c) => c.categoryID != null && c.categoryName != null && c.hide == 0).toList();
+      final validCategories = loadedCategories
+          .where((c) =>
+              c.categoryID != null && c.categoryName != null && c.hide == 0)
+          .toList();
       if (validCategories.isNotEmpty) {
         setState(() {
           categories = validCategories;
           _selectedCategoryIndex = validCategories[0].categoryID;
           isLoading = true;
-          futureMenuItems = MenuServices().fetchMenuItems(categoryID: _selectedCategoryIndex!).then((items) {
-            final validItem = items.where((item) => item.itemID != null && item.itemName != null).toList();
+          futureMenuItems = MenuServices()
+              .fetchMenuItems(categoryID: _selectedCategoryIndex!)
+              .then((items) {
+            final validItem = items
+                .where((item) => item.itemID != null && item.itemName != null)
+                .toList();
             if (validItem.isNotEmpty) {
               setState(() {
                 item = validItem;
                 isLoading = false;
               });
             }
-            return items.where((item) => item.itemID != null && item.itemName != null).toList();
+            return items
+                .where((item) => item.itemID != null && item.itemName != null)
+                .toList();
           }).catchError((e) {
             print('Error fetching menu items: $e');
             setState(() => isLoading = false);
@@ -109,13 +123,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     // Optionally refresh items if a category is selected
     if (_selectedCategoryIndex != null) {
-      futureMenuItems = MenuServices().fetchMenuItems(categoryID: _selectedCategoryIndex!).then((items) => items.where((item) => item.itemID != null && item.itemName != null).toList());
+      futureMenuItems = MenuServices()
+          .fetchMenuItems(categoryID: _selectedCategoryIndex!)
+          .then((items) => items
+              .where((item) => item.itemID != null && item.itemName != null)
+              .toList());
     }
 
     // Optional: refresh order list, subtotal, etc.
-    await Future.delayed(const Duration(milliseconds: 500)); // allow UI to show refresh animation
+    await Future.delayed(const Duration(
+        milliseconds: 500)); // allow UI to show refresh animation
 
     setState(() => isLoading = false);
+  }
+
+   Future<void> _loadCompanyName() async {
+    final name = await _storage.read(key: 'company_name');
+    if (name != null) {
+      setState(() {
+        _companyName = name;
+      });
+    }
   }
 
   Future<void> _createOrder() async {
@@ -125,7 +153,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       final response = await OrderServices().createOrder();
 
       final message = response['message']?.toString().toLowerCase() ?? '';
-      final isLikelySuccessful = response['success'] == true || message.contains('success');
+      final isLikelySuccessful =
+          response['success'] == true || message.contains('success');
       final orderId = response['data'].toString();
       await _saveOrderState(orderId);
       if (isLikelySuccessful) {
@@ -148,14 +177,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Future<void> _saveOrder() async {
     try {
-      final response = await OrderServices().saveOrder(orderID: _currentOrderId!);
+      final response =
+          await OrderServices().saveOrder(orderID: _currentOrderId!);
 
       await SharedPreferences.getInstance()
         ..remove('order_id');
 
       final message = response['message']?.toString().toLowerCase() ?? '';
       if (message == 'order status is updated') {
-        final newOrder = await OrderServices().fetchSelectedOrder(orderId: _currentOrderId!);
+        final newOrder =
+            await OrderServices().fetchSelectedOrder(orderId: _currentOrderId!);
 
         final Map<String, MenuItem> tempItemMap = {};
         for (final order in newOrder) {
@@ -225,11 +256,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
       if (orderID != null) {
         print('Fetching order with orderID: $orderID');
-        final order = await OrderServices().fetchSelectedOrder(orderId: orderID);
+        final order =
+            await OrderServices().fetchSelectedOrder(orderId: orderID);
         print('Raw API response orders: $order');
 
         // Filter valid orders
-        final validOrders = order.where((o) => o.orderID != null && o.orderTicket != null && o.orderStatus != null && o.totalAmount != null && o.date != null && o.time != null && (o.staff?.name != null || o.staff == null) && o.orderItem?.isNotEmpty == true && o.orderItem!.any((item) => (item.item?.imageUrl != null || item.item == null) && item.item?.itemID != null && item.item?.itemName != null && item.item?.categoryName != null && item.itemQuantity != null && item.item?.price != null)).toList();
+        final validOrders = order
+            .where((o) =>
+                o.orderID != null &&
+                o.orderTicket != null &&
+                o.orderStatus != null &&
+                o.totalAmount != null &&
+                o.date != null &&
+                o.time != null &&
+                (o.staff?.name != null || o.staff == null) &&
+                o.orderItem?.isNotEmpty == true &&
+                o.orderItem!.any((item) =>
+                    (item.item?.imageUrl != null || item.item == null) &&
+                    item.item?.itemID != null &&
+                    item.item?.itemName != null &&
+                    item.item?.categoryName != null &&
+                    item.itemQuantity != null &&
+                    item.item?.price != null))
+            .toList();
 
         print('Valid orders after filtering: $validOrders');
 
@@ -250,7 +299,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           orderDetails = validOrders;
           itemMap = tempItemMap;
           isLoading = false;
-          print(validOrders.isEmpty ? 'No valid orders' : 'Persisted OrderIndex: $orderID');
+          print(validOrders.isEmpty
+              ? 'No valid orders'
+              : 'Persisted OrderIndex: $orderID');
         });
       } else {
         setState(() {
@@ -277,7 +328,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       final response = await OrderServices().deleteOrder(_currentOrderId!);
 
       final message = response['message']?.toString().toLowerCase() ?? '';
-      final isDeleteSuccessful = response['success'] == true || message.contains('success');
+      final isDeleteSuccessful =
+          response['success'] == true || message.contains('success');
       await SharedPreferences.getInstance()
         ..remove('order_id');
       if (isDeleteSuccessful) {
@@ -327,7 +379,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       setState(() {
         orderItems = items;
         // Calculate Sub Total and Total
-        _subTotal = items.fold(0.0, (sum, item) => sum + ((item.item?.price ?? 0.0) * (item.itemQuantity ?? 0)));
+        _subTotal = items.fold(
+            0.0,
+            (sum, item) =>
+                sum + ((item.item?.price ?? 0.0) * (item.itemQuantity ?? 0)));
         _total = _subTotal; // Tax is 0, so Total = Sub Total
         //print('Set state - orderItems: $orderItems, Sub Total: $_subTotal, Total: $_total'); // Debug state
       });
@@ -355,7 +410,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             print('deleteOpenedOrder succeeded');
 
             setState(() {
-              print('Updating UI state: isBlur=true, _currentOrderId=null, clearing orderItems');
+              print(
+                  'Updating UI state: isBlur=true, _currentOrderId=null, clearing orderItems');
               isBlur = true;
               _currentOrderId = null;
               orderItems = [];
@@ -374,7 +430,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  void showDisableItemDialog(BuildContext context, MenuItem item, int? selectedCategoryIndex, VoidCallback refreshItems) {
+  void showDisableItemDialog(BuildContext context, MenuItem item,
+      int? selectedCategoryIndex, VoidCallback refreshItems) {
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -410,7 +467,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void deleteAndRefresh(String orderItemID) async {
     try {
-      final response = await OrderItemServices().deleteOrderItem(orderItemID: orderItemID);
+      final response =
+          await OrderItemServices().deleteOrderItem(orderItemID: orderItemID);
 
       if (response['success'] == false) {
         _loadOrderItems(_currentOrderId!); // Refresh order items
@@ -419,7 +477,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         AlertMessage.showSuccess(context, 'Item removed successfully');
       } else {
         _loadOrderItems(_currentOrderId!);
-        AlertMessage.showSuccess(context, 'Error ${response['success']}:${response['message'] ?? 'Unknown error'}');
+        AlertMessage.showSuccess(context,
+            'Error ${response['success']}:${response['message'] ?? 'Unknown error'}');
       }
     } catch (e) {
       AlertMessage.showError(context, 'Error removing item: $e');
@@ -438,7 +497,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final isConnected = await printer.isConnected ?? false;
     if (!isConnected) {
       if (context.mounted) {
-        AlertMessage.showError(context, 'Printer not connected. Please connect a printer');
+        AlertMessage.showError(
+            context, 'Printer not connected. Please connect a printer');
       }
       return;
     }
@@ -506,7 +566,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required List<String> selectedBOHCategories,
   }) {
     print('OrderItem IDs: ${orderItems.map((o) => o.item?.itemID).toList()}');
-    final selectedCategories = isFOH ? selectedFOHCategories : selectedBOHCategories;
+    final selectedCategories =
+        isFOH ? selectedFOHCategories : selectedBOHCategories;
 
     final filteredItems = orderItems.where((orderItem) {
       final itemID = orderItem.item?.itemID;
@@ -528,7 +589,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
 
       if (!selectedCategories.contains(categoryName)) {
-        print('[SKIP] itemID $itemID category "$categoryName" not in selectedCategories');
+        print(
+            '[SKIP] itemID $itemID category "$categoryName" not in selectedCategories');
         return false;
       }
 
@@ -574,7 +636,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Column(
                   children: [
                     _topMenu(
-                      title: 'Rumah Popia',
+                      title:
+                          _companyName.isNotEmpty ? _companyName : 'Loading...',
                       action: _search(),
                     ),
                     SizedBox(
@@ -582,15 +645,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       child: MenuCategoryTabs(
                         futureMenuCategories: futureMenuCategories,
                         isLoading: isLoading,
-                        selectedCategoryID: _selectedCategoryIndex, // Removed ! to allow null
+                        selectedCategoryID:
+                            _selectedCategoryIndex, // Removed ! to allow null
                         onCategorySelected: (category) {
-                          if (category.categoryID != null && category.hide == 0) {
+                          if (category.categoryID != null &&
+                              category.hide == 0) {
                             setState(() {
                               _selectedCategoryIndex = category.categoryID;
                               isLoading = false;
-                              futureMenuItems = MenuServices().fetchMenuItems(categoryID: _selectedCategoryIndex!).then((items) {
+                              futureMenuItems = MenuServices()
+                                  .fetchMenuItems(
+                                      categoryID: _selectedCategoryIndex!)
+                                  .then((items) {
                                 setState(() => isLoading = false);
-                                return items.where((item) => item.itemID != null && item.itemName != null).toList();
+                                return items
+                                    .where((item) =>
+                                        item.itemID != null &&
+                                        item.itemName != null)
+                                    .toList();
                               }).catchError((e) {
                                 print('Error fetching menu items: $e');
                                 setState(() => isLoading = false);
@@ -603,7 +675,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                     Expanded(
                       child: futureMenuItems == null
-                          ? const Center(child: Text('Select a category to load items.'))
+                          ? const Center(
+                              child: Text('Select a category to load items.'))
                           : MenuItemGrid(
                               futureMenuItems: futureMenuItems!,
                               itemBuilder: (item) => GestureDetector(
@@ -611,19 +684,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     ? null
                                     : () {
                                         if (isBlur) {
-                                          AlertMessage.showError(context, 'Please open order first!');
+                                          AlertMessage.showError(context,
+                                              'Please open order first!');
                                           return;
                                         }
 
                                         showDialog(
                                           context: context,
                                           barrierDismissible: true,
-                                          barrierColor: Colors.black.withOpacity(0.3),
+                                          barrierColor:
+                                              Colors.black.withOpacity(0.3),
                                           builder: (context) => AddItemDialog(
                                             imageUrl: item.imageUrl ?? '',
-                                            title: '${item.itemID ?? ''} ${item.itemName ?? ''}',
+                                            title:
+                                                '${item.itemID ?? ''} ${item.itemName ?? ''}',
                                             price: item.price ?? 0.0,
-                                            onAdd: (qty) => _createOrderItem(itemID: item.itemID!, quantity: qty),
+                                            onAdd: (qty) => _createOrderItem(
+                                                itemID: item.itemID!,
+                                                quantity: qty),
                                           ),
                                         );
                                       }, // Empty onTap, disabled if disable == 1
@@ -634,16 +712,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     _selectedCategoryIndex,
                                     () {
                                       setState(() {
-                                        futureMenuItems = MenuServices().fetchMenuItems(categoryID: _selectedCategoryIndex!).then((items) => items.where((item) => item.itemID != null && item.itemName != null).toList());
+                                        futureMenuItems = MenuServices()
+                                            .fetchMenuItems(
+                                                categoryID:
+                                                    _selectedCategoryIndex!)
+                                            .then((items) => items
+                                                .where((item) =>
+                                                    item.itemID != null &&
+                                                    item.itemName != null)
+                                                .toList());
                                       });
                                     },
                                   );
                                 },
                                 child: _item(
-                                  image: item.imageUrl ?? 'https://via.placeholder.com/120',
-                                  title: '${item.itemID ?? ''} ${item.itemName ?? ''}',
-                                  price: 'RM${(item.price ?? 0.0).toStringAsFixed(2)}',
-                                  disable: item.disable, // Use disable instead of hide
+                                  image: item.imageUrl ??
+                                      'https://via.placeholder.com/120',
+                                  title:
+                                      '${item.itemID ?? ''} ${item.itemName ?? ''}',
+                                  price:
+                                      'RM${(item.price ?? 0.0).toStringAsFixed(2)}',
+                                  disable: item
+                                      .disable, // Use disable instead of hide
                                 ),
                               ),
                             ),
@@ -664,7 +754,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             total: _total,
             onCreateOrder: _createOrder,
             onDeleteOrderItem: (orderItemID) async {
-              final removedItemIndex = orderItems.indexWhere((item) => item.orderItemID == orderItemID);
+              final removedItemIndex = orderItems
+                  .indexWhere((item) => item.orderItemID == orderItemID);
               if (removedItemIndex != -1) {
                 final removedItem = orderItems[removedItemIndex];
                 orderItems.removeAt(removedItemIndex);
@@ -698,7 +789,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     orderDetails: orderDetails,
                   ),
                   transitionsBuilder: (_, animation, __, child) {
-                    final tween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero).chain(CurveTween(curve: Curves.ease));
+                    final tween =
+                        Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
+                            .chain(CurveTween(curve: Curves.ease));
                     return SlideTransition(
                       position: animation.drive(tween),
                       child: child,
@@ -727,7 +820,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          color: isDisable ? AppColors.lightgrey1.withOpacity(0.4) : AppColors.darkgrey3.withOpacity(0.5).withAlpha(20),
+          color: isDisable
+              ? AppColors.lightgrey1.withOpacity(0.4)
+              : AppColors.darkgrey3.withOpacity(0.5).withAlpha(20),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -737,7 +832,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 image: DecorationImage(
-                  image: NetworkImage(image.isEmpty ? 'https://via.placeholder.com/120' : image),
+                  image: NetworkImage(image.isEmpty
+                      ? 'https://via.placeholder.com/120'
+                      : image),
                   fit: BoxFit.cover,
                 ),
               ),

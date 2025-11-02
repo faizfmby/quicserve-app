@@ -1,11 +1,19 @@
 class ApiEndpoints {
-  static const String baseUrl = 'http://office.quicserve.test/api/';
+  static const String baseUrl = 'https://quicserve.live/api';
   static const Duration timeout = Duration(seconds: 30);
 
   // Auth endpoints
   static const String login = '/login';
-  static const String stafflogin = '/staff/login';
-  static const String logout = '/staff/logout';
+  static const String logout = '/logout';
+
+  // Tenant routes (with slug)
+  static String withCompany(String companySlug, String path) {
+    return '/$companySlug$path';
+  }
+
+  // Cashier endpoints
+  static const String cashierLogin = '/clockIn';
+  static const String cashierLogout = '/clockOut';
 
   // Sales endpoints
   static const String sales = '/sales';
@@ -24,4 +32,7 @@ class ApiEndpoints {
 
   // Payment Method endpoints
   static const String paymentMethod = '/payment-method';
+
+  // Staff endpoints
+  static const String staff = '/staff';
 }

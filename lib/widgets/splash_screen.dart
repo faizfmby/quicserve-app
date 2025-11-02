@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quicserve_flutter/screen/login/login_screen.dart';
 import 'dart:async';
 import 'package:quicserve_flutter/screen/login/pin_code_screen.dart';
 
@@ -35,7 +36,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     Timer(const Duration(seconds: 4), () {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const PinCodeScreen()),
+        MaterialPageRoute(builder: (_) => const CompanyLoginScreen()),
       );
     });
   }

@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:quicserve_flutter/models/admin.dart';
+import 'package:quicserve_flutter/models/cashier.dart';
 import 'package:quicserve_flutter/models/user.dart';
 import 'package:quicserve_flutter/screen/login/pin_code_screen.dart';
 import 'package:quicserve_flutter/services/auth_service.dart';
@@ -10,34 +12,41 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   final _storage = const FlutterSecureStorage();
-  User? _user;
+  Admin? _admin;
+  Cashier? _cashier;
   bool _isLoggedIn = false;
+  bool _isCompanyLoggedIn = false;
 
-  User? get user => _user;
+  Admin? get admin => _admin;
+  Cashier? get cashier => _cashier;
   bool get isLoggedIn => _isLoggedIn;
+  bool get isCompanyLoggedIn => _isCompanyLoggedIn;
 
-  Future<bool> loginAdmin(String email, String password) async {
+  Future<bool> loginCompany(String email, String password) async {
     try {
-      final result = await _authService.loginAdmin(email, password);
+      final result = await _authService.loginCompany(email, password);
+      print('Login result from authService: $result');
       if (result['success']) {
-        _user = User.fromJson(result['data']['user']);
-        _isLoggedIn = true;
+        _admin = Admin.fromJson(result['data']['user']);
+        _isCompanyLoggedIn = true;
 
-        // Optionally store non-sensitive user data in SharedPreferences
+        // Save user session
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user', jsonEncode(result['data']['user']));
+        await prefs.setString('user', jsonEncode(_admin));
 
         notifyListeners();
         return true;
       } else {
-        _isLoggedIn = false;
-        _user = null;
+        _isCompanyLoggedIn = false;
+        _cashier = null;
         notifyListeners();
         return false;
       }
-    } catch (e) {
-      _isLoggedIn = false;
-      _user = null;
+    } catch (e, stack) {
+      print('LoginCompany Error: $e');
+      print(stack);
+      _isCompanyLoggedIn = false;
+      _cashier = null;
       notifyListeners();
       return false;
     }
@@ -48,38 +57,41 @@ class AuthProvider with ChangeNotifier {
       final result = await _authService.loginStaff(pin);
       print('Login result: $result');
       if (result['success'] == true) {
-        final userJson = result['data']['user'] as Map<String, dynamic>;
-        _user = User.fromJson(userJson);
+        final cashierJson = result['data']['user'] as Map<String, dynamic>;
+        _cashier = Cashier.fromJson(cashierJson);
 
         // Validate required fields
-        if (_user?.id == null || _user?.name == null || _user?.contact == null || _user?.role == null) {
-          throw Exception('Invalid user data: missing required fields');
+        if (_cashier?.id == null ||
+            _cashier?.staff == null ||
+            _cashier?.cashierSlug == null ||
+            _cashier?.pinNumber == null) {
+          throw Exception('Invalid cashier data: missing required fields');
         }
 
         _isLoggedIn = true;
 
-        // Optionally store non-sensitive user data in SharedPreferences
+        // Optionally store non-sensitive cashier data in SharedPreferences
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user', jsonEncode(userJson));
+        await prefs.setString('cashier', jsonEncode(cashierJson));
 
         notifyListeners();
         return true;
       } else {
         _isLoggedIn = false;
-        _user = null;
+        _cashier = null;
         notifyListeners();
         throw Exception(result['message'] ?? 'Invalid PIN');
       }
     } catch (e) {
       print('Login error: $e');
       _isLoggedIn = false;
-      _user = null;
+      _cashier = null;
       notifyListeners();
       throw Exception('Login failed: $e');
     }
   }
 
-  Future<void> logout(BuildContext context) async {
+  Future<void> logoutCashier(BuildContext context) async {
     try {
       final cashierHourID = await _storage.read(key: 'cashierHourID');
 
@@ -88,7 +100,7 @@ class AuthProvider with ChangeNotifier {
         return;
       }
 
-      final result = await _authService.logout(cashierHourID);
+      final result = await _authService.logoutCashier(cashierHourID);
       print('Logout result: $result');
       if (!result['success']) {
         print('Server logout failed: ${result['message']}');
@@ -96,12 +108,14 @@ class AuthProvider with ChangeNotifier {
     } catch (e) {
       print('Logout error: $e');
     } finally {
-      // Always clear local state regardless of server response
-      _user = null;
+      // Only clear cashier-related state and storage
+      _cashier = null;
       _isLoggedIn = false;
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('user');
-      await _storage.deleteAll(); // Clear all storage (token, staffID, etc.)
+      await prefs.remove('cashier');
+      await _storage.delete(key: 'cashier-token');
+      await _storage.delete(key: 'staffID');
+      await _storage.delete(key: 'cashierHourID');
       notifyListeners();
       Navigator.pushAndRemoveUntil(
         context,
@@ -117,7 +131,7 @@ class AuthProvider with ChangeNotifier {
     final token = await _storage.read(key: 'token');
 
     if (userData != null && token != null) {
-      _user = User.fromJson(jsonDecode(userData));
+      _cashier = Cashier.fromJson(jsonDecode(userData));
       _isLoggedIn = true;
       notifyListeners();
     }
@@ -129,10 +143,11 @@ class AuthProvider with ChangeNotifier {
       print('Authorization response: $result');
 
       final isSuccess = result['success'] == true;
-      final staff = result['staff'];
+      final cashier = result['cashier'];
 
-      if (isSuccess && staff != null) {
-        final role = result['staff']['staffRole'];
+      if (isSuccess && cashier != null) {
+        final staff = cashier['staff'];
+        final role = staff != null ? staff['staffRole'] : null;
 
         if (role == 'Manager' || role == 'Supervisor') {
           return true;

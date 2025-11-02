@@ -1,13 +1,20 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:quicserve_flutter/constants/api_endpoints.dart';
 import 'package:quicserve_flutter/models/payment_method.dart';
 import 'package:quicserve_flutter/services/api/base_api_service.dart';
 
 class PaymentMethodServices {
   final BaseApiService _apiService = BaseApiService();
+  final _storage = const FlutterSecureStorage();
 
   Future<List<PaymentMethod>> getPaymentMethod() async {
     try {
-      final response = await _apiService.get(ApiEndpoints.paymentMethod);
+      final companySlug = await _storage.read(key: 'company_slug');
+      if (companySlug == null) {
+        throw Exception('No company slug found. Please login first.');
+      }
+
+      final response = await _apiService.get(ApiEndpoints.withCompany(companySlug, ApiEndpoints.paymentMethod));
 
       if (response['success'] == true) {
         final data = response['data'] as List<dynamic>? ?? [];

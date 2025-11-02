@@ -1,3 +1,4 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:quicserve_flutter/constants/api_endpoints.dart';
 import 'package:quicserve_flutter/models/order_receipts.dart';
 import 'package:quicserve_flutter/models/sales.dart';
@@ -5,16 +6,24 @@ import 'package:quicserve_flutter/services/api/base_api_service.dart';
 
 class ReportsServices {
   final BaseApiService _apiService = BaseApiService();
+  final _storage = const FlutterSecureStorage();
 
   Future<SalesSummary> fetchSalesSummary({required String date}) async {
     try {
-      final response = await _apiService.get('${ApiEndpoints.sales}/summary?selected_date=$date');
+      final companySlug = await _storage.read(key: 'company_slug');
+      if (companySlug == null) {
+        throw Exception('No company slug found. Please login first.');
+      }
+
+      final response = await _apiService.get(
+          '${ApiEndpoints.withCompany(companySlug, ApiEndpoints.sales)}/summary?selected_date=$date');
       print('Raw API response: $response');
 
       if (response['success'] == true) {
         return SalesSummary.fromJson(response as Map<String, dynamic>);
       } else {
-        throw Exception(response['message']?.toString() ?? 'Failed to load sales summary');
+        throw Exception(
+            response['message']?.toString() ?? 'Failed to load sales summary');
       }
     } catch (e) {
       throw Exception('Failed to load sales summary: $e');
@@ -23,7 +32,13 @@ class ReportsServices {
 
   Future<Map<String, dynamic>> generateOrderReceipt(String orderID) async {
     try {
-      final endpoint = '${ApiEndpoints.sales}/order-receipts?orderID=$orderID';
+      final companySlug = await _storage.read(key: 'company_slug');
+      if (companySlug == null) {
+        throw Exception('No company slug found. Please login first.');
+      }
+
+      final endpoint =
+          '${ApiEndpoints.withCompany(companySlug, ApiEndpoints.sales)}/order-receipts?orderID=$orderID';
       final response = await _apiService.post(endpoint, {});
       print('Generate new order receipt raw response: $response');
       return response;
@@ -35,7 +50,13 @@ class ReportsServices {
 
   Future<OrderReceipts> fetchLatestReceipt() async {
     try {
-      const endpoint = '${ApiEndpoints.sales}/order-receipts/latest';
+      final companySlug = await _storage.read(key: 'company_slug');
+      if (companySlug == null) {
+        throw Exception('No company slug found. Please login first.');
+      }
+
+      final endpoint =
+          '${ApiEndpoints.withCompany(companySlug, ApiEndpoints.sales)}/order-receipts/latest';
       final response = await _apiService.get(endpoint);
 
       if (response['success'] == true && response['data'] != null) {

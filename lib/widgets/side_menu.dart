@@ -132,7 +132,7 @@ class _SideMenu extends State<SideMenu2> {
       onTap: () async {
         if (menu == 'Logout') {
           try {
-            await Provider.of<AuthProvider>(context, listen: false).logout(context);
+            await Provider.of<AuthProvider>(context, listen: false).logoutCashier(context);
           } catch (e) {
             AlertMessage.showError(context, 'Logout failed');
           }
@@ -238,7 +238,7 @@ class _SideMenu extends State<SideMenu2> {
 
   Widget _userInfo() {
     final authProvider = Provider.of<AuthProvider>(context);
-    final userName = authProvider.user?.name ?? 'Unknown';
+    final userName = authProvider.cashier?.cashierSlug ?? 'Unknown';
 
     return Column(
       children: [

@@ -1,11 +1,16 @@
 //import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:quicserve_flutter/constants/api_endpoints.dart';
 import 'package:quicserve_flutter/models/order_item.dart';
 import 'package:quicserve_flutter/services/api/base_api_service.dart';
 
 class OrderItemServices {
   final BaseApiService _apiService = BaseApiService();
-  //final _strorage = const FlutterSecureStorage();
+  final _storage = const FlutterSecureStorage();
+  
+  Future<String?> getCompanySlug() async {
+    return await _storage.read(key: 'company_slug');
+  }
 
   Future<Map<String, dynamic>> createOrderItem({
     required String orderID,
@@ -13,8 +18,13 @@ class OrderItemServices {
     required int itemQuantity,
   }) async {
     try {
+      final companySlug = await getCompanySlug();
+      if (companySlug == null) {
+        throw Exception('No company slug found. Please login first.');
+      }
+
       final response = await _apiService.post(
-        ApiEndpoints.orderItems,
+        ApiEndpoints.withCompany(companySlug, ApiEndpoints.orderItems),
         {
           'orderID': orderID,
           'itemID': itemID,
@@ -31,7 +41,12 @@ class OrderItemServices {
 
   Future<List<OrderItem>> fetchOrderItem({required String orderId}) async {
     try {
-      final response = await _apiService.get('${ApiEndpoints.orderItems}/$orderId');
+      final companySlug = await getCompanySlug();
+      if (companySlug == null) {
+        throw Exception('No company slug found. Please login first.');
+      }
+      
+      final response = await _apiService.get('${ApiEndpoints.withCompany(companySlug, ApiEndpoints.orderItems)}/$orderId');
 
       if (response['success'] == true) {
         final data = response['data'] as Map<String, dynamic>;
@@ -61,8 +76,13 @@ class OrderItemServices {
     required int newQuantity,
   }) async {
     try {
+      final companySlug = await getCompanySlug();
+      if (companySlug == null) {
+        throw Exception('No company slug found. Please login first.');
+      }
+      
       final response = await _apiService.put(
-        '${ApiEndpoints.orderItems}/$orderItemID/update',
+        '${ApiEndpoints.withCompany(companySlug, ApiEndpoints.orderItems)}/$orderItemID/update',
         {
           'itemQuantity': newQuantity
         },
@@ -76,7 +96,12 @@ class OrderItemServices {
 
   Future<Map<String, dynamic>> deleteOrderItem({required String orderItemID}) async {
     try {
-      final response = await _apiService.delete('${ApiEndpoints.orderItems}/$orderItemID/delete');
+      final companySlug = await getCompanySlug();
+      if (companySlug == null) {
+        throw Exception('No company slug found. Please login first.');
+      }
+
+      final response = await _apiService.delete('${ApiEndpoints.withCompany(companySlug, ApiEndpoints.orderItems)}/$orderItemID/delete');
       return response;
     } catch (e) {
       print('Error deleting order item: $e');
@@ -90,8 +115,13 @@ class OrderItemServices {
     required int itemQuantity,
   }) async {
     try {
+      final companySlug = await getCompanySlug();
+      if (companySlug == null) {
+        throw Exception('No company slug found. Please login first.');
+      }
+
       final response = await _apiService.post(
-        '${ApiEndpoints.orderItems}/$orderID/add',
+        '${ApiEndpoints.withCompany(companySlug, ApiEndpoints.orderItems)}/$orderID/add',
         {
           'itemID': itemID,
           'itemQuantity': itemQuantity,

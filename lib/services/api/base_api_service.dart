@@ -7,10 +7,16 @@ import 'package:quicserve_flutter/constants/api_endpoints.dart';
 class BaseApiService {
   final _storage = const FlutterSecureStorage();
 
-  Future<String?> _getToken() async {
-    final token = await _storage.read(key: 'token');
-    print('Retrieved token: $token');
-    return token;
+  Future<String?> _getCompanyToken() async {
+    final companyToken = await _storage.read(key: 'company-token');
+    print('Retrieved company token: $companyToken');
+    return companyToken;
+  }
+
+  Future<String?> _getCashierToken() async {
+    final cashierToken = await _storage.read(key: 'cashier-token');
+    print('Retrieved cashier token: $cashierToken');
+    return cashierToken;
   }
 
   Future<Map<String, String>> _getHeaders({bool includeToken = true}) async {
@@ -19,12 +25,16 @@ class BaseApiService {
       'Accept': 'application/json',
     };
     if (includeToken) {
-      final token = await _getToken();
-      if (token != null) {
-        headers['Authorization'] = 'Bearer $token';
-        print('Authorization header set: Bearer $token');
+      final companyToken = await _getCompanyToken(); 
+      final cashierToken = await _getCashierToken();
+      if (cashierToken != null) {
+        headers['Authorization'] = 'Bearer $cashierToken';
+        print('Authorization header set: Bearer $cashierToken');
+      } else if (companyToken != null) {
+        headers['Authorization'] = 'Bearer $companyToken';
+        print('Authorization header set: Bearer $companyToken');
       } else {
-        print('No token found in storage');
+        print('No company/cashier token found in storage');
       }
     }
     return headers;
@@ -96,7 +106,10 @@ class BaseApiService {
     }
   }
 
-  Map<String, dynamic> _handleResponse(http.Response response, String endpoint) {
+  Future<Map<String, dynamic>> _handleResponse(http.Response response, String endpoint) async {
+    final companySlug = await _storage.read(key: 'company_slug');
+    print('Company slug: $companySlug');
+
     final statusCode = response.statusCode;
     final body = response.body.isNotEmpty ? jsonDecode(response.body) as Map<String, dynamic> : {};
     print('Response [$statusCode]: ${response.body}'); // Log raw response
@@ -105,7 +118,8 @@ class BaseApiService {
       // Debug the body structure
       print('Response body keys: ${body.keys.toString()}');
       // Check for success based on status or success key
-      final isSuccess = (body['status'] == 'success' || body['success'] == true) || statusCode == 201;
+      final successValue = body['success'];
+      final isSuccess = (successValue == true || successValue == 'true' || body['status'] == 'success') || statusCode == 201;
       print('isSuccess: $isSuccess, status: ${body['status']}, success: ${body['success']}');
 
       if (isSuccess) {
@@ -114,21 +128,42 @@ class BaseApiService {
           print('Returning raw body for sales/summary: $body');
           return Map<String, dynamic>.from(body); // Explicitly cast to Map<String, dynamic>
         }
-        if (endpoint == ApiEndpoints.login || endpoint == ApiEndpoints.stafflogin) {
+
+        if (endpoint == ApiEndpoints.login) {
           return {
             'success': true,
             'data': {
               'token': body['token']?.toString() ?? '',
-              'user': body['staff'] is Map ? Map<String, dynamic>.from(body['staff']) : (body['admin'] is Map ? Map<String, dynamic>.from(body['admin']) : {}),
+              'user': body['user'] is Map ? Map<String, dynamic>.from(body['user']) : (body['admin'] is Map ? Map<String, dynamic>.from(body['admin']) : {}),
+              'company_slug': body['company_slug']?.toString()
+                  ?? body['user']?['company']?['company_slug']?.toString()
+                  ?? '',
+            },
+          };
+        }
+
+        if (normalizedEndpoint.endsWith(ApiEndpoints.cashierLogin)) {
+          final userData = body['cashier'];
+          final staffData = body['staff'];
+
+          return {
+            'success': true,
+            'data': {
+              'token': body['token']?.toString() ?? '',
+              'user': (userData is Map<String, dynamic>)
+                  ? Map<String, dynamic>.from(userData)
+                  : (staffData is Map<String, dynamic>)
+                      ? Map<String, dynamic>.from(staffData)
+                      : {},
               'cashierHourID': body['cashierHourID']?.toString() ?? '',
             },
           };
         }
 
-        if (endpoint == '${ApiEndpoints.sales}/login') {
+        if (normalizedEndpoint.endsWith('${ApiEndpoints.withCompany(companySlug!, ApiEndpoints.sales)}/login')) {
           return {
             'success': true,
-            'staff': body['staff'] ?? {},
+            'cashier': body['cashier'] ?? {},
           };
         }
         // Return the original data structure for other endpoints

@@ -66,7 +66,8 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
     try {
       final dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
       print('Fetching sales summary for date: $dateString');
-      futureSalesSummary = ReportsServices().fetchSalesSummary(date: dateString);
+      futureSalesSummary =
+          ReportsServices().fetchSalesSummary(date: dateString);
       final result = await futureSalesSummary!;
       print('Received sales summary: ${result.toJson()}');
       setState(() {
@@ -85,7 +86,8 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('Building UI, isLoading: $isLoading, salesSummary: ${salesSummary != null}');
+    print(
+        'Building UI, isLoading: $isLoading, salesSummary: ${salesSummary != null}');
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.white,
@@ -122,7 +124,8 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
                     slivers: [
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 20, horizontal: 20),
                           child: Column(
                             children: [
                               Row(
@@ -131,7 +134,8 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
                                   ElevatedButton(
                                     onPressed: _loadSalesSummary,
                                     style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 11.5),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 5, vertical: 11.5),
                                       backgroundColor: AppColors.lightgrey2,
                                       foregroundColor: AppColors.black,
                                       shape: RoundedRectangleBorder(
@@ -152,20 +156,36 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
                                         backgroundColor: Colors.transparent,
                                         foregroundColor: Colors.black,
                                         shadowColor: Colors.transparent,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(5)),
                                       ),
                                       child: Ink(
                                         height: 50,
-                                        decoration: BoxDecoration(gradient: AppColors.gradient2, borderRadius: BorderRadius.circular(5)),
-                                        child: Center(child: Text(DateFormat('dd MMM, yyyy').format(_selectedDate))),
+                                        decoration: BoxDecoration(
+                                            gradient: AppColors.gradient2,
+                                            borderRadius:
+                                                BorderRadius.circular(5)),
+                                        child: Center(
+                                            child: Text(
+                                                DateFormat('dd MMM, yyyy')
+                                                    .format(_selectedDate))),
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
                               Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                child: isLoading ? const Center(child: CircularProgressIndicator()) : _buildSalesDetail(salesSummary: salesSummary!),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                child: isLoading
+                                    ? const Center(
+                                        child: CircularProgressIndicator())
+                                    : (salesSummary == null
+                                        ? const Center(
+                                            child: Text('No data available'))
+                                        : _buildSalesDetail(
+                                            salesSummary: salesSummary!)),
                               ),
                             ],
                           ),
@@ -180,7 +200,8 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
                       final isConnected = await printer.isConnected ?? false;
 
                       if (!isConnected) {
-                        AlertMessage.showError(context, 'Printer not connected');
+                        AlertMessage.showError(
+                            context, 'Printer not connected');
                         return;
                       }
 
@@ -227,12 +248,13 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
       7: 'DuitNow QR',
     };
 
-    final paymenetAmounts = List<double>.filled(paymentTypeNames.length, 0.0);
+    final paymentAmounts = List<double>.filled(paymentTypeNames.length, 0.0);
     if (salesSummary.paymentMethodTotals != null) {
-      for (var payment in salesSummary.paymentMethodTotals!) {
-        final index = paymentTypeNames.keys.toList().indexOf(payment.paymentID ?? -1);
+      for (var payment in salesSummary.paymentMethodTotals ?? []) {
+        final index =
+            paymentTypeNames.keys.toList().indexOf(payment.paymentID ?? -1);
         if (index != -1) {
-          paymenetAmounts[index] = payment.totalAmount ?? 0.0;
+          paymentAmounts[index] = payment.totalAmount ?? 0.0;
         }
       }
     }
@@ -284,7 +306,8 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
         for (int i = 0; i < paymentTypeNames.length; i++)
           Column(
             children: [
-              _buildPaymentTypeRow(paymentTypeNames.values.toList()[i], paymenetAmounts[i]),
+              _buildPaymentTypeRow(
+                  paymentTypeNames.values.toList()[i], paymentAmounts[i]),
               Divider(
                 color: AppColors.lightgrey3.withOpacity(0.5),
               ),
@@ -314,7 +337,7 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
               style: CustomFont.calibribold22.copyWith(color: Colors.red),
             ),
             Text(
-              '${salesSummary.unpaidOrders!.toStringAsFixed(2)}',
+              '${salesSummary.unpaidOrders?.toStringAsFixed(2) ?? "0.00"}',
               style: CustomFont.calibribold22.copyWith(color: Colors.red),
             ),
           ],
@@ -328,7 +351,8 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
 
   Widget _buildPaymentTypeRow(String name, double value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0), // Optional: for better spacing
+      padding: const EdgeInsets.symmetric(
+          vertical: 4.0), // Optional: for better spacing
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
