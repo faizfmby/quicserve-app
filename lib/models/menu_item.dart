@@ -38,18 +38,6 @@ class MenuItem {
 
   factory MenuItem.fromJson(Map<String, dynamic> json) => _$MenuItemFromJson(json);
   Map<String, dynamic> toJson() => _$MenuItemToJson(this);
-
-  /* factory MenuItem.fromJson(Map<String, dynamic> json) {
-    return MenuItem(
-      itemID: json['itemID'],
-      itemName: json['itemName'],
-      itemImage: json['itemImage'],
-      price: double.parse(json['price']),
-      categoryID: json['categoryID'],
-      hide: json['hide'] == 1,
-      image_url: json['image_url'],
-    );
-  } */
 }
 
 double? _doubleFromJson(dynamic value) {

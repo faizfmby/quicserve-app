@@ -249,4 +249,28 @@ class OrderServices {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>> getRecommendation(List<String> cartItems) async {
+    try {
+      final companySlug = await _storage.read(key: 'company_slug');
+      if (companySlug == null) {
+        throw Exception('No company slug found for API request.');
+      }
+
+      const recommendationPath = '/orders/recommendation';
+      final endpoint = ApiEndpoints.withCompany(companySlug, recommendationPath);
+
+      final payload = {
+        'items': cartItems,
+      };
+
+      final response = await _apiService.post(endpoint, payload);
+      
+      return response; 
+      
+    } catch (e) {
+      print('Error retrieving recommendation: $e');
+      rethrow; 
+    }
+  }
 }

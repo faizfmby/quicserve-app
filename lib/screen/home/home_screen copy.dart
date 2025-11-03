@@ -1,7 +1,6 @@
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:quicserve_flutter/constants/custom_icon.dart';
 import 'package:quicserve_flutter/constants/theme.dart';
@@ -9,7 +8,6 @@ import 'package:quicserve_flutter/models/menu_category.dart';
 import 'package:quicserve_flutter/models/menu_item.dart';
 import 'package:quicserve_flutter/models/order.dart';
 import 'package:quicserve_flutter/models/order_item.dart';
-import 'package:quicserve_flutter/models/recommendation.dart';
 import 'package:quicserve_flutter/screen/home/payment_screen.dart';
 import 'package:quicserve_flutter/services/api/order_item_services.dart';
 import 'package:quicserve_flutter/services/api/order_services.dart';
@@ -26,7 +24,6 @@ import 'package:quicserve_flutter/widgets/home_screen%20widget/section/menu_cate
 import 'package:quicserve_flutter/widgets/home_screen%20widget/section/menu_item_grid.dart';
 import 'package:quicserve_flutter/services/api/menu_services.dart';
 import 'package:quicserve_flutter/widgets/home_screen%20widget/section/order_section.dart';
-//import 'package:quicserve_flutter/widgets/homescreen%20widget/order_item_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -55,7 +52,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   double _subTotal = 0.0;
   double _total = 0.0;
 
-  late Future<Recommendation> _futureRecommendation;
   late Future<List<MenuCategory>> futureMenuCategories;
   Future<List<MenuItem>>? futureMenuItems;
   Future<List<OrderItem>>? futureOrderItems;
@@ -68,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   //final TextEditingController _searchController = TextEditingController();
   bool _isLoadingRecommendation = false;
-  String? _suggestedItem = '';
+  String? _suggestedItem = 'French Fries';
 
   @override
   void initState() {
@@ -77,25 +73,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _loadTicketSettings();
     _loadOrderState();
     _loadOrderDetails();
-    _futureRecommendation = _fetchRecommendation();
 
     futureMenuCategories = MenuServices().fetchMenuCategory();
     futureMenuCategories.then((loadedCategories) {
-      final validCategories = loadedCategories.where((c) => c.categoryID != null && c.categoryName != null && c.hide == 0).toList();
+      final validCategories = loadedCategories
+          .where((c) =>
+              c.categoryID != null && c.categoryName != null && c.hide == 0)
+          .toList();
       if (validCategories.isNotEmpty) {
         setState(() {
           categories = validCategories;
           _selectedCategoryIndex = validCategories[0].categoryID;
           isLoading = true;
-          futureMenuItems = MenuServices().fetchMenuItems(categoryID: _selectedCategoryIndex!).then((items) {
-            final validItem = items.where((item) => item.itemID != null && item.itemName != null).toList();
+          futureMenuItems = MenuServices()
+              .fetchMenuItems(categoryID: _selectedCategoryIndex!)
+              .then((items) {
+            final validItem = items
+                .where((item) => item.itemID != null && item.itemName != null)
+                .toList();
             if (validItem.isNotEmpty) {
               setState(() {
                 item = validItem;
                 isLoading = false;
               });
             }
-            return items.where((item) => item.itemID != null && item.itemName != null).toList();
+            return items
+                .where((item) => item.itemID != null && item.itemName != null)
+                .toList();
           }).catchError((e) {
             print('Error fetching menu items: $e');
             setState(() => isLoading = false);
@@ -122,11 +126,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     // Optionally refresh items if a category is selected
     if (_selectedCategoryIndex != null) {
-      futureMenuItems = MenuServices().fetchMenuItems(categoryID: _selectedCategoryIndex!).then((items) => items.where((item) => item.itemID != null && item.itemName != null).toList());
+      futureMenuItems = MenuServices()
+          .fetchMenuItems(categoryID: _selectedCategoryIndex!)
+          .then((items) => items
+              .where((item) => item.itemID != null && item.itemName != null)
+              .toList());
     }
 
     // Optional: refresh order list, subtotal, etc.
-    await Future.delayed(const Duration(milliseconds: 500)); // allow UI to show refresh animation
+    await Future.delayed(const Duration(
+        milliseconds: 500)); // allow UI to show refresh animation
 
     setState(() => isLoading = false);
   }
@@ -147,7 +156,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       final response = await OrderServices().createOrder();
 
       final message = response['message']?.toString().toLowerCase() ?? '';
-      final isLikelySuccessful = response['success'] == true || message.contains('success');
+      final isLikelySuccessful =
+          response['success'] == true || message.contains('success');
       final orderId = response['data'].toString();
       await _saveOrderState(orderId);
       if (isLikelySuccessful) {
@@ -170,14 +180,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Future<void> _saveOrder() async {
     try {
-      final response = await OrderServices().saveOrder(orderID: _currentOrderId!);
+      final response =
+          await OrderServices().saveOrder(orderID: _currentOrderId!);
 
       await SharedPreferences.getInstance()
         ..remove('order_id');
 
       final message = response['message']?.toString().toLowerCase() ?? '';
       if (message == 'order status is updated') {
-        final newOrder = await OrderServices().fetchSelectedOrder(orderId: _currentOrderId!);
+        final newOrder =
+            await OrderServices().fetchSelectedOrder(orderId: _currentOrderId!);
 
         final Map<String, MenuItem> tempItemMap = {};
         for (final order in newOrder) {
@@ -248,11 +260,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
       if (orderID != null) {
         print('Fetching order with orderID: $orderID');
-        final order = await OrderServices().fetchSelectedOrder(orderId: orderID);
+        final order =
+            await OrderServices().fetchSelectedOrder(orderId: orderID);
         print('Raw API response orders: $order');
 
         // Filter valid orders
-        final validOrders = order.where((o) => o.orderID != null && o.orderTicket != null && o.orderStatus != null && o.totalAmount != null && o.date != null && o.time != null && (o.staff?.name != null || o.staff == null) && o.orderItem?.isNotEmpty == true && o.orderItem!.any((item) => (item.item?.imageUrl != null || item.item == null) && item.item?.itemID != null && item.item?.itemName != null && item.item?.categoryName != null && item.itemQuantity != null && item.item?.price != null)).toList();
+        final validOrders = order
+            .where((o) =>
+                o.orderID != null &&
+                o.orderTicket != null &&
+                o.orderStatus != null &&
+                o.totalAmount != null &&
+                o.date != null &&
+                o.time != null &&
+                (o.staff?.name != null || o.staff == null) &&
+                o.orderItem?.isNotEmpty == true &&
+                o.orderItem!.any((item) =>
+                    (item.item?.imageUrl != null || item.item == null) &&
+                    item.item?.itemID != null &&
+                    item.item?.itemName != null &&
+                    item.item?.categoryName != null &&
+                    item.itemQuantity != null &&
+                    item.item?.price != null))
+            .toList();
 
         print('Valid orders after filtering: $validOrders');
 
@@ -273,7 +303,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           orderDetails = validOrders;
           itemMap = tempItemMap;
           isLoading = false;
-          print(validOrders.isEmpty ? 'No valid orders' : 'Persisted OrderIndex: $orderID');
+          print(validOrders.isEmpty
+              ? 'No valid orders'
+              : 'Persisted OrderIndex: $orderID');
         });
       } else {
         setState(() {
@@ -300,7 +332,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       final response = await OrderServices().deleteOrder(_currentOrderId!);
 
       final message = response['message']?.toString().toLowerCase() ?? '';
-      final isDeleteSuccessful = response['success'] == true || message.contains('success');
+      final isDeleteSuccessful =
+          response['success'] == true || message.contains('success');
       await SharedPreferences.getInstance()
         ..remove('order_id');
       if (isDeleteSuccessful) {
@@ -324,7 +357,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _onMenuTap(MenuItem item) {
     // Must check if there is an active order before showing the dialog
     if (_currentOrderId == null) {
-      AlertMessage.showError(context, 'Please create or load an order before adding items.');
+      AlertMessage.showError(
+          context, 'Please create or load an order before adding items.');
       return;
     }
     showDialog(
@@ -350,7 +384,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (_currentOrderId == null) return;
 
     try {
-      await Future.delayed(const Duration(milliseconds: 100));
       final response = await OrderItemServices().createOrderItem(
         orderID: _currentOrderId!,
         itemID: itemID,
@@ -359,12 +392,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
       if (response['success'] == true) {
         // 1. Load the new items from the server (updates orderItems and totals)
-        await _loadOrderItems(_currentOrderId!);
+        _loadOrderItems(_currentOrderId!);
 
         // 2. Trigger the asynchronous recommendation lookup
-        setState(() {
-          _futureRecommendation = _fetchRecommendation();
-        });
+        _getRecommendation();
       } else {
         AlertMessage.showError(context, 'Failed to add item!');
       }
@@ -373,19 +404,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  _loadOrderItems(String orderId) async {
-    await Future.delayed(Duration(milliseconds: 10));
+  void _loadOrderItems(String orderId) async {
     try {
       final items = await OrderItemServices().fetchOrderItem(orderId: orderId);
       //print('Fetched order items: $items'); // Debug fetched items
       setState(() {
         orderItems = items;
         // Calculate Sub Total and Total
-        _subTotal = items.fold(0.0, (sum, item) => sum + ((item.item?.price ?? 0.0) * (item.itemQuantity ?? 0)));
+        _subTotal = items.fold(
+            0.0,
+            (sum, item) =>
+                sum + ((item.item?.price ?? 0.0) * (item.itemQuantity ?? 0)));
         _total = _subTotal; // Tax is 0, so Total = Sub Total
         //print('Set state - orderItems: $orderItems, Sub Total: $_subTotal, Total: $_total'); // Debug state
-        // Refresh recommendation when cart changes
-        _futureRecommendation = _fetchRecommendation();
       });
     } catch (e) {
       print('Error loading order items: $e');
@@ -394,66 +425,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _handleDeleteOrderItem(String orderItemID) async {
-    final removedItemIndex = orderItems.indexWhere((item) => item.orderItemID == orderItemID);
+    final removedItemIndex =
+        orderItems.indexWhere((item) => item.orderItemID == orderItemID);
     if (removedItemIndex != -1) {
       final removedItem = orderItems[removedItemIndex];
       orderItems.removeAt(removedItemIndex);
       // Assuming deleteAndRefresh is an async method in the state class
       deleteAndRefresh(removedItem.orderItemID!);
-      setState(() {
-        _futureRecommendation = _fetchRecommendation();
-      });
-    }
-  }
-
-  Future<Recommendation> _fetchRecommendation() async {
-    final List<String> currentCartItems = orderItems.map((item) => item.item?.itemName ?? '').where((name) => name.isNotEmpty).toList();
-
-    print('Fetching recommendation for cart items: $currentCartItems');
-
-    try {
-      // 2. **Call the real service function.**
-      final Map<String, dynamic> responseMap = await OrderServices().getRecommendation(currentCartItems);
-
-      // Handle both top-level and nested (under 'data') payloads,
-      // prefer top-level if data is empty or lacks required keys
-      Map<String, dynamic> payload;
-      if (responseMap['data'] is Map<String, dynamic>) {
-        final dataMap = Map<String, dynamic>.from(responseMap['data']);
-        final dataHasKeys = dataMap.containsKey('antecedents') || dataMap.containsKey('recommendation');
-        if (dataMap.isEmpty && (responseMap.containsKey('antecedents') || responseMap.containsKey('recommendation'))) {
-          payload = responseMap;
-        } else if (!dataHasKeys && (responseMap.containsKey('antecedents') || responseMap.containsKey('recommendation'))) {
-          payload = responseMap;
-        } else {
-          payload = dataMap;
-        }
-      } else {
-        payload = responseMap;
-      }
-      print('Recommendation raw payload: $payload');
-
-      // Guard against missing keys
-      if (payload['recommendation'] == null) {
-        return Recommendation();
-      }
-
-      // Ensure antecedents is a List<String>
-      final antecedents = (payload['antecedents'] is List) ? (payload['antecedents'] as List).whereType<String>().toList() : <String>[];
-      final normalized = <String, dynamic>{
-        'antecedents': antecedents,
-        'recommendation': payload['recommendation']?.toString(),
-        'confidence': payload['confidence']?.toString(),
-      };
-      print('Recommendation normalized map: $normalized');
-
-      final rec = Recommendation.fromJson(normalized);
-      print('Parsed Recommendation -> antecedents: ${rec.antecedents}, recommendation: ${rec.recommendation}, confidence: ${rec.confidence}');
-      return rec;
-    } catch (e) {
-      // Print the error and rethrow it so the FutureBuilder can handle the error state
-      print('Failed to fetch recommendation: $e');
-      rethrow;
+      setState(() {});
     }
   }
 
@@ -462,14 +441,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final suggestedMenuItem = item.firstWhere(
       (menuItem) => menuItem.itemName == itemTitle,
       orElse: () {
-        debugPrint('Suggested item "$itemTitle" not found in current item list.');
+        debugPrint(
+            'Suggested item "$itemTitle" not found in current item list.');
         AlertMessage.showError(context, 'Suggested item not available.');
         return MenuItem(); // Return an empty/invalid MenuItem on error
       },
     );
 
     // Check if a valid item was found and has an ID
-    if (suggestedMenuItem.itemID != null && suggestedMenuItem.itemID!.isNotEmpty) {
+    if (suggestedMenuItem.itemID != null &&
+        suggestedMenuItem.itemID!.isNotEmpty) {
       // Add the suggested item with quantity 1
       _createOrderItem(itemID: suggestedMenuItem.itemID!, quantity: 1);
     }
@@ -478,6 +459,57 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       _suggestedItem = null;
     });
+  }
+
+  void _getRecommendation() async {
+    // 1. Reset state and show loading
+    setState(() {
+      _isLoadingRecommendation = true;
+      _suggestedItem = null;
+    });
+
+    // Get unique item names in the current cart (using the updated orderItems list)
+    final uniqueItems = orderItems
+        .map((oi) => oi.item?.itemName ?? '')
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .toList();
+
+    if (uniqueItems.isEmpty) {
+      // If the cart is empty after refresh, don't query
+      setState(() {
+        _isLoadingRecommendation = false;
+      });
+      return;
+    }
+
+    try {
+      // Assuming OrderServices has the necessary API call
+      final response = await OrderServices().getRecommendation(uniqueItems);
+
+      setState(() {
+        // Assuming the response structure is {recommendation: {suggested_item: 'Name'}}
+        final recommendationData =
+            response['recommendation'] as Map<String, dynamic>?;
+
+        if (recommendationData != null &&
+            recommendationData.containsKey('suggested_item')) {
+          _suggestedItem = recommendationData['suggested_item'] as String;
+        } else {
+          _suggestedItem = null;
+        }
+      });
+    } catch (e) {
+      debugPrint('Error retrieving recommendation: $e');
+      setState(() {
+        _suggestedItem = null;
+      });
+    } finally {
+      // 2. Hide loading indicator
+      setState(() {
+        _isLoadingRecommendation = false;
+      });
+    }
   }
 
   void showCancelOrderDialog(BuildContext context, String selectedOrderID) {
@@ -498,7 +530,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             print('deleteOpenedOrder succeeded');
 
             setState(() {
-              print('Updating UI state: isBlur=true, _currentOrderId=null, clearing orderItems');
+              print(
+                  'Updating UI state: isBlur=true, _currentOrderId=null, clearing orderItems');
               isBlur = true;
               _currentOrderId = null;
               orderItems = [];
@@ -517,7 +550,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  void showDisableItemDialog(BuildContext context, MenuItem item, int? selectedCategoryIndex, VoidCallback refreshItems) {
+  void showDisableItemDialog(BuildContext context, MenuItem item,
+      int? selectedCategoryIndex, VoidCallback refreshItems) {
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -553,7 +587,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void deleteAndRefresh(String orderItemID) async {
     try {
-      final response = await OrderItemServices().deleteOrderItem(orderItemID: orderItemID);
+      final response =
+          await OrderItemServices().deleteOrderItem(orderItemID: orderItemID);
 
       if (response['success'] == false) {
         _loadOrderItems(_currentOrderId!); // Refresh order items
@@ -562,7 +597,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         AlertMessage.showSuccess(context, 'Item removed successfully');
       } else {
         _loadOrderItems(_currentOrderId!);
-        AlertMessage.showSuccess(context, 'Error ${response['success']}:${response['message'] ?? 'Unknown error'}');
+        AlertMessage.showSuccess(context,
+            'Error ${response['success']}:${response['message'] ?? 'Unknown error'}');
       }
     } catch (e) {
       AlertMessage.showError(context, 'Error removing item: $e');
@@ -584,7 +620,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           orderDetails: orderDetails,
         ),
         transitionsBuilder: (_, animation, __, child) {
-          final tween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero).chain(CurveTween(curve: Curves.ease));
+          final tween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
+              .chain(CurveTween(curve: Curves.ease));
           return SlideTransition(
             position: animation.drive(tween),
             child: child,
@@ -606,7 +643,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final isConnected = await printer.isConnected ?? false;
     if (!isConnected) {
       if (context.mounted) {
-        AlertMessage.showError(context, 'Printer not connected. Please connect a printer');
+        AlertMessage.showError(
+            context, 'Printer not connected. Please connect a printer');
       }
       return;
     }
@@ -674,7 +712,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required List<String> selectedBOHCategories,
   }) {
     print('OrderItem IDs: ${orderItems.map((o) => o.item?.itemID).toList()}');
-    final selectedCategories = isFOH ? selectedFOHCategories : selectedBOHCategories;
+    final selectedCategories =
+        isFOH ? selectedFOHCategories : selectedBOHCategories;
 
     final filteredItems = orderItems.where((orderItem) {
       final itemID = orderItem.item?.itemID;
@@ -696,7 +735,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
 
       if (!selectedCategories.contains(categoryName)) {
-        print('[SKIP] itemID $itemID category "$categoryName" not in selectedCategories');
+        print(
+            '[SKIP] itemID $itemID category "$categoryName" not in selectedCategories');
         return false;
       }
 
@@ -734,9 +774,120 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       children: [
         Expanded(
           flex: 14,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-            child: _buildMenuContent(),
+          child: RefreshIndicator(
+            onRefresh: _refreshAllData,
+            child: SizedBox(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 15),
+                child: Column(
+                  children: [
+                    _topMenu(
+                      title:
+                          _companyName.isNotEmpty ? _companyName : 'Loading...',
+                      action: _search(),
+                    ),
+                    SizedBox(
+                      height: 120,
+                      child: MenuCategoryTabs(
+                        futureMenuCategories: futureMenuCategories,
+                        isLoading: isLoading,
+                        selectedCategoryID:
+                            _selectedCategoryIndex, // Removed ! to allow null
+                        onCategorySelected: (category) {
+                          if (category.categoryID != null &&
+                              category.hide == 0) {
+                            setState(() {
+                              _selectedCategoryIndex = category.categoryID;
+                              isLoading = false;
+                              futureMenuItems = MenuServices()
+                                  .fetchMenuItems(
+                                      categoryID: _selectedCategoryIndex!)
+                                  .then((items) {
+                                setState(() => isLoading = false);
+                                return items
+                                    .where((item) =>
+                                        item.itemID != null &&
+                                        item.itemName != null)
+                                    .toList();
+                              }).catchError((e) {
+                                print('Error fetching menu items: $e');
+                                setState(() => isLoading = false);
+                                return <MenuItem>[];
+                              });
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: futureMenuItems == null
+                          ? const Center(
+                              child: Text('Select a category to load items.'))
+                          : MenuItemGrid(
+                              futureMenuItems: futureMenuItems!,
+                              itemBuilder: (item) => GestureDetector(
+                                onTap: item.disable == 1
+                                    ? null
+                                    : () {
+                                        if (isBlur) {
+                                          AlertMessage.showError(context,
+                                              'Please open order first!');
+                                          return;
+                                        }
+
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: true,
+                                          barrierColor:
+                                              Colors.black.withOpacity(0.3),
+                                          builder: (context) => AddItemDialog(
+                                            imageUrl: item.imageUrl ?? '',
+                                            title:
+                                                '${item.itemID ?? ''} ${item.itemName ?? ''}',
+                                            price: item.price ?? 0.0,
+                                            onAdd: (qty) => _createOrderItem(
+                                                itemID: item.itemID!,
+                                                quantity: qty),
+                                          ),
+                                        );
+                                      }, // Empty onTap, disabled if disable == 1
+                                onLongPress: () {
+                                  showDisableItemDialog(
+                                    context,
+                                    item,
+                                    _selectedCategoryIndex,
+                                    () {
+                                      setState(() {
+                                        futureMenuItems = MenuServices()
+                                            .fetchMenuItems(
+                                                categoryID:
+                                                    _selectedCategoryIndex!)
+                                            .then((items) => items
+                                                .where((item) =>
+                                                    item.itemID != null &&
+                                                    item.itemName != null)
+                                                .toList());
+                                      });
+                                    },
+                                  );
+                                },
+                                child: _item(
+                                  image: item.imageUrl ??
+                                      'https://via.placeholder.com/120',
+                                  title:
+                                      '${item.itemID ?? ''} ${item.itemName ?? ''}',
+                                  price:
+                                      'RM${(item.price ?? 0.0).toStringAsFixed(2)}',
+                                  disable: item
+                                      .disable, // Use disable instead of hide
+                                ),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
         Expanded(
@@ -784,17 +935,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          color: isDisable ? AppColors.lightgrey1.withOpacity(0.4) : AppColors.darkgrey3.withOpacity(0.5).withAlpha(20),
+          color: isDisable
+              ? AppColors.lightgrey1.withOpacity(0.4)
+              : AppColors.darkgrey3.withOpacity(0.5).withAlpha(20),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              height: 115,
+              height: 130,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 image: DecorationImage(
-                  image: NetworkImage(image.isEmpty ? 'https://via.placeholder.com/120' : image),
+                  image: NetworkImage(image.isEmpty
+                      ? 'https://via.placeholder.com/120'
+                      : image),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -933,193 +1088,44 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildMenuContent() {
-    // This column holds the main interactive menu layout
-    final menuLayout = Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: _menuCategoriesAndItems(),
-        ),
-      ],
-    );
-
-    return Stack(
-      children: [
-        menuLayout,
-        FutureBuilder<Recommendation>(
-          future: _futureRecommendation,
-          builder: (context, snapshot) {
-            // Decide which child to show (loading, empty, or banner)
-            Widget content;
-
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              content = Container(
-                key: const ValueKey<String>('loading'),
-                width: 320,
-                height: 70,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.black.withOpacity(0.15),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const CircularProgressIndicator(color: AppColors.darkgrey1),
-              );
-            } else if (snapshot.hasError || !snapshot.hasData) {
-              print('Error loading recommendation: ${snapshot.error}');
-              content = const SizedBox.shrink(
-                key: ValueKey<String>('empty'),
-              );
-            } else {
-              // Data is successfully loaded
-              final recommendation = snapshot.data!;
-
-              if (recommendation.antecedents == null) {
-                content = const SizedBox.shrink(
-                  key: ValueKey<String>('empty'),
-                );
-              } else {
-                // Build safe strings
-                final antecedentsText = (recommendation.antecedents ?? const <String>[]).where((s) => s.trim().isNotEmpty).join(', ');
-                final recText = recommendation.recommendation ?? '';
-                final confText = recommendation.confidence ?? '';
-
-                String dynamicTitle;
-                if (antecedentsText.isNotEmpty && recText.isNotEmpty) {
-                  dynamicTitle = 'AI Recommends: $antecedentsText + $recText';
-                } else if (recText.isNotEmpty) {
-                  dynamicTitle = 'AI Recommends: $recText';
-                } else {
-                  dynamicTitle = 'AI Recommends: $antecedentsText';
-                }
-                // Confidence from API already includes % per logs (e.g., "33.3%")
-                final dynamicSubtitle = confText.isNotEmpty ? '$confText customers buy this combo in this week!' : 'Customers buy this combo in this week!';
-
-                content = RecommendationBanner(
-                  key: ValueKey<String>('banner:$dynamicTitle|$dynamicSubtitle'),
-                  title: dynamicTitle,
-                  subtitle: dynamicSubtitle,
-                );
-              }
-            }
-
-            // Wrap with fade animation via AnimatedSwitcher
-            return Positioned(
-              bottom: 20,
-              right: 0,
-              child: SizedBox(
-                width: 320,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  switchInCurve: Curves.easeIn,
-                  switchOutCurve: Curves.easeOut,
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: child,
-                  ),
-                  child: content,
-                ),
-              ),
-            );
-          },
-        ),
+        _header(),
+        const SizedBox(height: 20),
+        const RecommendationBanner(), // <-- INSERTED BANNER HERE
+        const SizedBox(height: 20),
+        _search(),
+        const SizedBox(height: 20),
+        // ... Menu Categories and Items will follow here
       ],
     );
   }
 
-  Widget _menuCategoriesAndItems() {
-    return RefreshIndicator(
-      onRefresh: _refreshAllData,
-      child: SizedBox(
-        child: Padding(
-          padding: const EdgeInsets.only(left: 15),
-          child: Column(
-            children: [
-              _topMenu(
-                title: _companyName.isNotEmpty ? _companyName : 'Loading...',
-                action: _search(),
+  Widget _header() {
+    return Row(
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Welcome Back,',
+              style: CustomFont.calibribold12.copyWith(
+                color: AppColors.white,
+                fontSize: 16,
               ),
-              SizedBox(
-                height: 120,
-                child: MenuCategoryTabs(
-                  futureMenuCategories: futureMenuCategories,
-                  isLoading: isLoading,
-                  selectedCategoryID: _selectedCategoryIndex, // Removed ! to allow null
-                  onCategorySelected: (category) {
-                    if (category.categoryID != null && category.hide == 0) {
-                      setState(() {
-                        _selectedCategoryIndex = category.categoryID;
-                        isLoading = false;
-                        futureMenuItems = MenuServices().fetchMenuItems(categoryID: _selectedCategoryIndex!).then((items) {
-                          setState(() => isLoading = false);
-                          return items.where((item) => item.itemID != null && item.itemName != null).toList();
-                        }).catchError((e) {
-                          print('Error fetching menu items: $e');
-                          setState(() => isLoading = false);
-                          return <MenuItem>[];
-                        });
-                      });
-                    }
-                  },
-                ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              DateFormat('EEEE, d MMMM yyyy').format(DateTime.now()),
+              style: CustomFont.calibri16.copyWith(
+                color: AppColors.white.withOpacity(0.8),
               ),
-              Expanded(
-                child: futureMenuItems == null
-                    ? const Center(child: Text('Select a category to load items.'))
-                    : MenuItemGrid(
-                        futureMenuItems: futureMenuItems!,
-                        itemBuilder: (item) => GestureDetector(
-                          onTap: item.disable == 1
-                              ? null
-                              : () {
-                                  if (isBlur) {
-                                    AlertMessage.showError(context, 'Please open order first!');
-                                    return;
-                                  }
-
-                                  showDialog(
-                                    context: context,
-                                    barrierDismissible: true,
-                                    barrierColor: Colors.black.withOpacity(0.3),
-                                    builder: (context) => AddItemDialog(
-                                      imageUrl: item.imageUrl ?? '',
-                                      title: '${item.itemID ?? ''} ${item.itemName ?? ''}',
-                                      price: item.price ?? 0.0,
-                                      onAdd: (qty) => _createOrderItem(itemID: item.itemID!, quantity: qty),
-                                    ),
-                                  );
-                                }, // Empty onTap, disabled if disable == 1
-                          onLongPress: () {
-                            showDisableItemDialog(
-                              context,
-                              item,
-                              _selectedCategoryIndex,
-                              () {
-                                setState(() {
-                                  futureMenuItems = MenuServices().fetchMenuItems(categoryID: _selectedCategoryIndex!).then((items) => items.where((item) => item.itemID != null && item.itemName != null).toList());
-                                });
-                              },
-                            );
-                          },
-                          child: _item(
-                            image: item.imageUrl ?? 'https://via.placeholder.com/120',
-                            title: '${item.itemID ?? ''} ${item.itemName ?? ''}',
-                            price: 'RM${(item.price ?? 0.0).toStringAsFixed(2)}',
-                            disable: item.disable, // Use disable instead of hide
-                          ),
-                        ),
-                      ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ),
+        Expanded(flex: 1, child: Container(width: double.infinity)),
+      ],
     );
   }
 
@@ -1166,23 +1172,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 }
 
 class RecommendationBanner extends StatelessWidget {
-  final String title;
-  final String subtitle;
-
-  const RecommendationBanner({
-    super.key,
-    required this.title,
-    required this.subtitle,
-  });
+  const RecommendationBanner({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      // width: double.infinity is now constrained by the parent SizedBox(width: 320)
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-      margin: const EdgeInsets.only(right: 15, bottom: 10),
       decoration: BoxDecoration(
-        gradient: AppColors.gradient2, // Dynamic background color
+        color: AppColors.lightgrey2, // Light color for contrast
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
@@ -1194,10 +1192,10 @@ class RecommendationBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          SvgPicture.asset(
-            'assets/icons/robot-solid-full.svg',
-            width: 50.0,
-            height: 50.0,
+          const Icon(
+            Icons.star_border, // Using a standard star icon for recommendation
+            color: AppColors.lightgrey3,
+            size: 28,
           ),
           const SizedBox(width: 15),
           Expanded(
@@ -1205,7 +1203,7 @@ class RecommendationBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  'Featured Item of the Day!',
                   style: CustomFont.calibribold12.copyWith(
                     fontSize: 16,
                     color: AppColors.darkgrey1,
@@ -1213,7 +1211,7 @@ class RecommendationBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  subtitle,
+                  'Try our new Espresso Blend - it is 20% off today.',
                   style: CustomFont.calibri16.copyWith(
                     fontSize: 12,
                     color: AppColors.darkgrey1.withOpacity(0.8),
@@ -1222,13 +1220,10 @@ class RecommendationBanner extends StatelessWidget {
               ],
             ),
           ),
-          GestureDetector(
-            onTap: () {},
-            child: const Icon(
-              Icons.close,
-              color: AppColors.blue,
-              size: 16,
-            ),
+          const Icon(
+            Icons.arrow_forward_ios,
+            color: AppColors.lightgrey2,
+            size: 16,
           ),
         ],
       ),

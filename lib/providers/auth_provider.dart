@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:quicserve_flutter/models/admin.dart';
 import 'package:quicserve_flutter/models/cashier.dart';
-import 'package:quicserve_flutter/models/user.dart';
 import 'package:quicserve_flutter/screen/login/pin_code_screen.dart';
+import 'package:quicserve_flutter/screen/login/login_screen.dart';
 import 'package:quicserve_flutter/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -61,10 +61,7 @@ class AuthProvider with ChangeNotifier {
         _cashier = Cashier.fromJson(cashierJson);
 
         // Validate required fields
-        if (_cashier?.id == null ||
-            _cashier?.staff == null ||
-            _cashier?.cashierSlug == null ||
-            _cashier?.pinNumber == null) {
+        if (_cashier?.id == null || _cashier?.staff == null || _cashier?.cashierSlug == null || _cashier?.pinNumber == null) {
           throw Exception('Invalid cashier data: missing required fields');
         }
 
@@ -160,6 +157,45 @@ class AuthProvider with ChangeNotifier {
     } catch (e) {
       print('Authorization error: $e');
       rethrow;
+    }
+  }
+
+  Future<void> logoutCompany(BuildContext context) async {
+    try {
+      // Clear in-memory state
+      _admin = null;
+      _cashier = null;
+      _isLoggedIn = false;
+      _isCompanyLoggedIn = false;
+
+      // Clear persisted state
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('user');
+      await prefs.remove('cashier');
+
+      // Clear secure storage for both company and cashier scopes
+      await _storage.delete(key: 'company-token');
+      await _storage.delete(key: 'company_slug');
+      await _storage.delete(key: 'company_name');
+      await _storage.delete(key: 'cashier-token');
+      await _storage.delete(key: 'staffID');
+      await _storage.delete(key: 'cashierHourID');
+
+      notifyListeners();
+
+      // Navigate to company login screen
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const CompanyLoginScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      // Even if cleanup fails, attempt navigation to prevent user lock-in
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const CompanyLoginScreen()),
+        (route) => false,
+      );
     }
   }
 }

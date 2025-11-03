@@ -23,6 +23,10 @@ class OrderSection extends StatelessWidget {
   final VoidCallback onSaveOrder;
   final VoidCallback onPlaceOrder;
 
+  final bool isLoadingRecommendation;
+  final String? suggestedItem;
+  final Function(String)? onAddSuggestedItem;
+
   const OrderSection({
     super.key,
     required this.orderItems,
@@ -37,6 +41,9 @@ class OrderSection extends StatelessWidget {
     required this.onCancelOrder,
     required this.onSaveOrder,
     required this.onPlaceOrder,
+    this.isLoadingRecommendation = false,
+    this.suggestedItem,
+    this.onAddSuggestedItem,
   });
 
   Future<void> printOrderTicket({
@@ -54,7 +61,8 @@ class OrderSection extends StatelessWidget {
       // Attempt to connect to a default printer, or show a dialog to select one
       // For this example, let's just show a message.
       if (context.mounted) {
-        AlertMessage.showError(context, 'Printer not connected. Please coonnect a printer');
+        AlertMessage.showError(
+            context, 'Printer not connected. Please coonnect a printer');
       }
       return;
     }
@@ -98,7 +106,9 @@ class OrderSection extends StatelessWidget {
     required List<OrderItem> orderItems,
     required bool isFOH,
   }) {
-    final selectedCategories = isFOH ? AppState().selectedFOHCategories : AppState().selectedBOHCategories;
+    final selectedCategories = isFOH
+        ? AppState().selectedFOHCategories
+        : AppState().selectedBOHCategories;
 
     final filteredItems = orderItems.where((orderItem) {
       final menuItem = orderItem.item?.itemID;
@@ -132,7 +142,8 @@ class OrderSection extends StatelessWidget {
 
     if (items.isNotEmpty) {
       for (final item in items) {
-        printer.printLeftRight("${item.item?.itemName ?? 'Unknown'}", "x${item.itemQuantity}", 1);
+        printer.printLeftRight(
+            "${item.item?.itemName ?? 'Unknown'}", "x${item.itemQuantity}", 1);
       }
     } else {
       printer.printCustom("No items", 1, 1);
@@ -192,7 +203,8 @@ class OrderSection extends StatelessWidget {
                                     const SizedBox(height: 8),
                                     Text(
                                       'No item',
-                                      style: CustomFont.calibribold18.copyWith(color: AppColors.white),
+                                      style: CustomFont.calibribold18
+                                          .copyWith(color: AppColors.white),
                                     ),
                                   ],
                                 ),
@@ -208,13 +220,16 @@ class OrderSection extends StatelessWidget {
                               direction: DismissDirection.endToStart,
                               background: Container(
                                 alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 20),
                                 margin: const EdgeInsets.only(bottom: 10),
                                 decoration: const BoxDecoration(
                                   color: Colors.red,
-                                  borderRadius: BorderRadius.horizontal(right: Radius.circular(20)),
+                                  borderRadius: BorderRadius.horizontal(
+                                      right: Radius.circular(20)),
                                 ),
-                                child: const Icon(Icons.delete, color: Colors.white),
+                                child: const Icon(Icons.delete,
+                                    color: Colors.white),
                               ),
                               onDismissed: (_) {
                                 onDeleteOrderItem(item.orderItemID!);
@@ -227,9 +242,11 @@ class OrderSection extends StatelessWidget {
                                   },
                                   child: _itemOrder(
                                     image: item.item?.imageUrl ?? '',
-                                    title: '${item.item?.itemID} ${item.item?.itemName}',
+                                    title:
+                                        '${item.item?.itemID} ${item.item?.itemName}',
                                     qty: item.itemQuantity.toString(),
-                                    price: 'RM${(item.item?.price ?? 0.0).toStringAsFixed(2)}',
+                                    price:
+                                        'RM${(item.item?.price ?? 0.0).toStringAsFixed(2)}',
                                   ),
                                 ),
                               ),
@@ -250,16 +267,27 @@ class OrderSection extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Sub Total', style: CustomFont.calibribold18.copyWith(fontSize: 15, color: AppColors.white)),
-                        Text(orderItems.isEmpty ? 'RM0.00' : 'RM${subTotal.toStringAsFixed(2)}', style: CustomFont.calibribold18.copyWith(fontSize: 15, color: AppColors.white)),
+                        Text('Sub Total',
+                            style: CustomFont.calibribold18.copyWith(
+                                fontSize: 15, color: AppColors.white)),
+                        Text(
+                            orderItems.isEmpty
+                                ? 'RM0.00'
+                                : 'RM${subTotal.toStringAsFixed(2)}',
+                            style: CustomFont.calibribold18.copyWith(
+                                fontSize: 15, color: AppColors.white)),
                       ],
                     ),
                     const SizedBox(height: 5),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Tax', style: CustomFont.calibribold18.copyWith(fontSize: 15, color: AppColors.white)),
-                        Text('RM0.00', style: CustomFont.calibribold18.copyWith(fontSize: 15, color: AppColors.white)),
+                        Text('Tax',
+                            style: CustomFont.calibribold18.copyWith(
+                                fontSize: 15, color: AppColors.white)),
+                        Text('RM0.00',
+                            style: CustomFont.calibribold18.copyWith(
+                                fontSize: 15, color: AppColors.white)),
                       ],
                     ),
                     Container(
@@ -271,8 +299,15 @@ class OrderSection extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Total', style: CustomFont.calibribold18.copyWith(fontSize: 20, color: AppColors.white)),
-                        Text(orderItems.isEmpty ? 'RM0.00' : 'RM${total.toStringAsFixed(2)}', style: CustomFont.calibribold18.copyWith(fontSize: 20, color: AppColors.white)),
+                        Text('Total',
+                            style: CustomFont.calibribold18.copyWith(
+                                fontSize: 20, color: AppColors.white)),
+                        Text(
+                            orderItems.isEmpty
+                                ? 'RM0.00'
+                                : 'RM${total.toStringAsFixed(2)}',
+                            style: CustomFont.calibribold18.copyWith(
+                                fontSize: 20, color: AppColors.white)),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -294,13 +329,16 @@ class OrderSection extends StatelessWidget {
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
-                              borderRadius: BorderRadius.all(Radius.circular(8)),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(8)),
                             ),
                             child: child,
                           );
                         },
                       ),
-                      onPressed: currentOrderId == null || orderItems.isEmpty ? null : onSaveOrder,
+                      onPressed: currentOrderId == null || orderItems.isEmpty
+                          ? null
+                          : onSaveOrder,
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -329,7 +367,8 @@ class OrderSection extends StatelessWidget {
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
-                              borderRadius: BorderRadius.all(Radius.circular(8)),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(8)),
                             ),
                             child: child,
                           );
@@ -394,7 +433,8 @@ class OrderSection extends StatelessWidget {
     );
   }
 
-  Widget _topOrder(BuildContext context, {required String title, required String? orderId}) {
+  Widget _topOrder(BuildContext context,
+      {required String title, required String? orderId}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,7 +461,8 @@ class OrderSection extends StatelessWidget {
                       color: AppColors.white,
                     ),
                     onPressed: () {
-                      onCancelOrder(orderId); // Use onCancelOrder for both cases
+                      onCancelOrder(
+                          orderId); // Use onCancelOrder for both cases
                     },
                   ),
               ],
@@ -460,7 +501,8 @@ class OrderSection extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               image: DecorationImage(
-                image: NetworkImage(image.isEmpty ? 'https://via.placeholder.com/120' : image),
+                image: NetworkImage(
+                    image.isEmpty ? 'https://via.placeholder.com/120' : image),
                 fit: BoxFit.cover,
               ),
             ),

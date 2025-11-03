@@ -13,8 +13,7 @@ class PinCodeScreen extends StatefulWidget {
   State<PinCodeScreen> createState() => _PinCodeScreenState();
 }
 
-class _PinCodeScreenState extends State<PinCodeScreen>
-    with TickerProviderStateMixin {
+class _PinCodeScreenState extends State<PinCodeScreen> with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
@@ -45,23 +44,25 @@ class _PinCodeScreenState extends State<PinCodeScreen>
   void initState() {
     super.initState();
 
-    _pin.addAll(['0', '0', '0', '0']);
+    _pin.addAll([
+      '0',
+      '0',
+      '0',
+      '0'
+    ]);
 
     _shakeController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    _shakeAnimation = Tween<double>(begin: 0, end: 10)
-        .chain(CurveTween(curve: Curves.elasticIn))
-        .animate(_shakeController);
+    _shakeAnimation = Tween<double>(begin: 0, end: 10).chain(CurveTween(curve: Curves.elasticIn)).animate(_shakeController);
 
     // Fade animation for center container
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
-    _fadeAnimation =
-        CurvedAnimation(parent: _fadeController, curve: Curves.easeIn);
+    _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeIn);
 
     _fadeController.forward(); // start fade-in
 
@@ -123,15 +124,13 @@ class _PinCodeScreenState extends State<PinCodeScreen>
     });
 
     try {
-      final result = await Provider.of<AuthProvider>(context, listen: false)
-          .loginWithPin(pin);
+      final result = await Provider.of<AuthProvider>(context, listen: false).loginWithPin(pin);
       if (!mounted) return;
 
       setState(() => _isLoading = false);
 
       if (result) {
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const SideMenu2()));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SideMenu2()));
       } else {
         throw Exception('Login failed unexpectedly');
       }
@@ -221,7 +220,20 @@ class _PinCodeScreenState extends State<PinCodeScreen>
   }
 
   Widget _buildKeypad() {
-    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '>'];
+    const keys = [
+      '1',
+      '2',
+      '3',
+      '4',
+      '5',
+      '6',
+      '7',
+      '8',
+      '9',
+      'C',
+      '0',
+      '>'
+    ];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -261,6 +273,28 @@ class _PinCodeScreenState extends State<PinCodeScreen>
     return Scaffold(
       body: Stack(children: [
         _buildMainUI(),
+        // Small red logout company button (top-right)
+        Positioned(
+          top: 30,
+          right: 20,
+          child: TextButton.icon(
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              minimumSize: const Size(0, 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () {
+              Provider.of<AuthProvider>(context, listen: false).logoutCompany(context);
+            },
+            icon: const Icon(Icons.logout, size: 16),
+            label: const Text(
+              'Logout Company',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
         if (_isLoading) _buildLoadingOverlay(),
       ]),
     );
@@ -270,7 +304,10 @@ class _PinCodeScreenState extends State<PinCodeScreen>
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.blue, AppColors.teal],
+          colors: [
+            AppColors.blue,
+            AppColors.teal
+          ],
           begin: Alignment.bottomLeft,
           end: Alignment.topRight,
         ),
@@ -287,7 +324,10 @@ class _PinCodeScreenState extends State<PinCodeScreen>
                 margin: const EdgeInsets.all(0),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [AppColors.blue, AppColors.teal],
+                    colors: [
+                      AppColors.blue,
+                      AppColors.teal
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),

@@ -25,7 +25,7 @@ class BaseApiService {
       'Accept': 'application/json',
     };
     if (includeToken) {
-      final companyToken = await _getCompanyToken(); 
+      final companyToken = await _getCompanyToken();
       final cashierToken = await _getCashierToken();
       if (cashierToken != null) {
         headers['Authorization'] = 'Bearer $cashierToken';
@@ -52,7 +52,8 @@ class BaseApiService {
 
       return _handleResponse(response, endpoint);
     } catch (e) {
-      throw _handleError(e);
+      // Return a unified error map (don't throw non-Exception objects)
+      return _handleError(e);
     }
   }
 
@@ -126,7 +127,7 @@ class BaseApiService {
         final normalizedEndpoint = endpoint.split('?').first;
         if (normalizedEndpoint == '${ApiEndpoints.sales}/summary') {
           print('Returning raw body for sales/summary: $body');
-          return Map<String, dynamic>.from(body); // Explicitly cast to Map<String, dynamic>
+          return Map<String, dynamic>.from(body); // Explicit cast
         }
 
         if (endpoint == ApiEndpoints.login) {
@@ -135,9 +136,7 @@ class BaseApiService {
             'data': {
               'token': body['token']?.toString() ?? '',
               'user': body['user'] is Map ? Map<String, dynamic>.from(body['user']) : (body['admin'] is Map ? Map<String, dynamic>.from(body['admin']) : {}),
-              'company_slug': body['company_slug']?.toString()
-                  ?? body['user']?['company']?['company_slug']?.toString()
-                  ?? '',
+              'company_slug': body['company_slug']?.toString() ?? body['user']?['company']?['company_slug']?.toString() ?? '',
             },
           };
         }
@@ -160,16 +159,35 @@ class BaseApiService {
           };
         }
 
-        if (normalizedEndpoint.endsWith('${ApiEndpoints.withCompany(companySlug!, ApiEndpoints.sales)}/login')) {
+        if (companySlug != null && normalizedEndpoint.endsWith('${ApiEndpoints.withCompany(companySlug, ApiEndpoints.sales)}/login')) {
           return {
             'success': true,
             'cashier': body['cashier'] ?? {},
           };
         }
-        // Return the original data structure for other endpoints
+
+        // Default success handling with smart data passthrough
+        Map<String, dynamic> dataMap = {};
+        if (body['data'] is Map && (body['data'] as Map).isNotEmpty) {
+          dataMap = Map<String, dynamic>.from(body['data'] as Map);
+        } else {
+          // If 'data' is missing/empty but the top-level body has meaningful fields,
+          // pass the entire body as data so downstream code can read it.
+          final meaningfulTopLevelKeys = const [
+            // Recommendation-related
+            'antecedents', 'recommendation', 'confidence',
+            // Sales summary-related
+            'selected_date', 'selectedDate', 'sales', 'net_sales', 'netSales',
+          ];
+          final hasMeaningful = body.keys.any(meaningfulTopLevelKeys.contains);
+          if (hasMeaningful) {
+            dataMap = Map<String, dynamic>.from(body);
+          }
+        }
+
         return {
           'success': true,
-          'data': body['data'] ?? {},
+          'data': body['data'] ?? dataMap ?? {},
           'message': body['message']?.toString() ?? body['status']?.toString() ?? 'Success',
         };
       }

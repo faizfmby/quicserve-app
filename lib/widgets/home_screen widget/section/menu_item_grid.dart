@@ -36,7 +36,8 @@ class MenuItemGrid extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     'No item in this category',
-                    style: CustomFont.calibribold18.copyWith(color: AppColors.black),
+                    style: CustomFont.calibribold18
+                        .copyWith(color: AppColors.black),
                   ),
                 ],
               ),

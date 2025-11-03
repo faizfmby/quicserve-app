@@ -17,6 +17,7 @@ class PaymentMethod {
     this.status,
   });
 
-  factory PaymentMethod.fromJson(Map<String, dynamic> json) => _$PaymentMethodFromJson(json);
+  factory PaymentMethod.fromJson(Map<String, dynamic> json) =>
+      _$PaymentMethodFromJson(json);
   Map<String, dynamic> toJson() => _$PaymentMethodToJson(this);
 }
